@@ -1,0 +1,3 @@
+[submodule "ContentGrabbingJi"]
+	path = ContentGrabbingJi
+	url = git@github.com:LamGC/ContentGrabbingJi.git
