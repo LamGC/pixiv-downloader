@@ -22,6 +22,10 @@ public abstract class PixivDownloader {
         Objects.requireNonNull(this.database = database);
     }
 
+    IllustFilter getFilter() {
+        return this.filter;
+    }
+
     /**
      * 导入作品
      * @param id 作品Id
@@ -47,13 +51,11 @@ public abstract class PixivDownloader {
         if(!this.filter.filterIllust(id, pageCount, title, description, userId, fileExtName, tags)) {
             return;
         }
-
         ByteArrayOutputStream bufferStream = new ByteArrayOutputStream();
         ByteStreams.copy(imageInputStream, bufferStream);
-        ByteArrayInputStream imageStream = new ByteArrayInputStream(bufferStream.toByteArray());
-        fileStore.save(id, pageIndex, title, userId, imageStream, fileExtName);
-        this.database
-                .putImageMetaData(id, pageIndex, title, description, userId, imageInputStream, fileExtName, tags);
+        fileStore.save(id, pageIndex, title, userId, new ByteArrayInputStream(bufferStream.toByteArray()), fileExtName);
+        this.database.putImageMetaData(id, pageIndex, title, description, userId,
+                        new ByteArrayInputStream(bufferStream.toByteArray()), fileExtName, tags);
     }
 
 }

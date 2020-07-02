@@ -19,8 +19,11 @@ public class DeepDanbooruImageStore implements ImageFileStore {
 
     private final Map<String, File> hashDirMap = new HashMap<>();
 
-    public DeepDanbooruImageStore(File storeDir) {
+    public DeepDanbooruImageStore(File storeDir) throws IOException {
         this.storeDir = storeDir;
+        if(!storeDir.exists() && !storeDir.mkdirs()) {
+            throw new IOException("Directory create failure!");
+        }
     }
 
     @Override
@@ -30,6 +33,9 @@ public class DeepDanbooruImageStore implements ImageFileStore {
         ByteStreams.copy(imageInputStream, bufferStream);
         String md5 = MessageDigestUtils.md5ToString(bufferStream.toByteArray(), true);
         File file = new File(getHashStoreDir(md5), md5 + "." + fileExtName);
+        if(!file.exists() && !file.createNewFile()) {
+            throw new IOException("create file failure");
+        }
         Files.write(file.toPath(), bufferStream.toByteArray(), StandardOpenOption.WRITE);
     }
 

@@ -1,12 +1,18 @@
 package net.lamgc.pixiv.downloader.deepdanbooru;
 
+import com.google.common.io.ByteStreams;
 import net.lamgc.pixiv.downloader.MetadataDatabase;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -14,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DeepDanbooruDatabase implements MetadataDatabase {
 
+    private final static Logger log = LoggerFactory.getLogger(DeepDanbooruDatabase.class);
     private final AtomicReference<Connection> database = new AtomicReference<>();
     private final File databaseFile;
 
@@ -24,8 +31,8 @@ public class DeepDanbooruDatabase implements MetadataDatabase {
     }
     
     public DeepDanbooruDatabase(String databasePath) throws SQLException {
-
         databaseFile = new File(databasePath);
+        connectDataBase();
         checkAndFixDataBase();
         insertStatement = database.get().prepareStatement("INSERT INTO posts VALUES (?, ?, ?, ?, ?)");
     }
@@ -35,11 +42,19 @@ public class DeepDanbooruDatabase implements MetadataDatabase {
     }
 
     private void checkAndFixDataBase() {
-         if(!validDataBase()) {
-            databaseFile.delete();
+        try {
+            if(!hasTable()) {
+                createTable();
+            }
+        } catch (SQLException throwable) {
+            throw new IllegalStateException();
+        }
+    }
 
-         }
-
+    private boolean hasTable() throws SQLException {
+        Connection databaseConn = database.get();
+        ResultSet resultSet = databaseConn.createStatement().executeQuery("SELECT tbl_name FROM sqlite_master WHERE type='table' AND name='posts';");
+        return resultSet.next();
     }
 
     private boolean validDataBase() {
@@ -74,13 +89,15 @@ public class DeepDanbooruDatabase implements MetadataDatabase {
             int userId, 
             InputStream imageInputStream, 
             String fileExtName, 
-            String[] tags) throws SQLException {
+            String[] tags) throws SQLException, IOException {
         StringBuilder tagsStr = new StringBuilder();
         for (String tag : tags) {
-            tagsStr.append(tag).append(" ");
+            tagsStr.append(tag.replaceAll(" ", "_")).append(" ");
         }
 
         ByteArrayOutputStream bufferStream = new ByteArrayOutputStream();
+        long readLength = ByteStreams.copy(imageInputStream, bufferStream);
+        log.info("已读取的图片长度: {}b", readLength);
         String md5;
         try {
             md5 = Hex.encodeHexString(
@@ -91,20 +108,35 @@ public class DeepDanbooruDatabase implements MetadataDatabase {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-        insertStatement.setInt(1, id);
-        insertStatement.setString(2, md5);
-        insertStatement.setString(3, fileExtName);
-        insertStatement.setString(4, tagsStr.toString());
-        insertStatement.setInt(5, tags.length);
+        try {
+            //PreparedStatement insertStatement = database.get().prepareStatement("INSERT INTO posts VALUES (?, ?, ?, ?, ?)");
+            insertStatement.setInt(1, id);
+            insertStatement.setString(2, md5);
+            insertStatement.setString(3, fileExtName);
+            insertStatement.setString(4, tagsStr.toString());
+            insertStatement.setInt(5, tags.length);
 
-        if (!insertStatement.execute()) {
-            throw new RuntimeException("Execute SQL statement failed: " + insertStatement.getWarnings().getMessage());
+            insertStatement.execute();
+        } finally {
+            insertStatement.clearWarnings();
+            insertStatement.clearParameters();
         }
-        insertStatement.clearWarnings();
-        insertStatement.clearParameters();
+    }
+
+    @Override
+    public Set<String> getTags() throws SQLException {
+        Statement statement = database.get().createStatement();
+        ResultSet tagsResult = statement.executeQuery("SELECT tag_string FROM posts");
+        Set<String> tagsSet = new HashSet<>();
+        while(tagsResult.next()) {
+            String tagsStr = tagsResult.getString(1);
+            tagsSet.addAll(Arrays.asList(tagsStr.split(" ")));
+        }
+        return tagsSet;
     }
 
     public void close() throws SQLException {
+        insertStatement.close();
         database.get().close();
     }
 

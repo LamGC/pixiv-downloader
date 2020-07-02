@@ -15,18 +15,17 @@ public class PagesCountFilter implements IllustFilter {
         this.minPages = minPages;
     }
 
-
     @Override
     public boolean filterIllust(int id, int pageCount, String title, String description, int userId, String fileExtName, String[] tags) {
         return min(pageCount) && max(pageCount);
     }
 
     private boolean max(int pagesCount) {
-        return maxPages < 0 || pagesCount < maxPages;
+        return maxPages <= 0 || pagesCount < maxPages;
     }
 
     private boolean min(int pagesCount) {
-        return minPages < 0 || pagesCount >= minPages;
+        return minPages <= 0 || pagesCount >= minPages;
     }
 
 }

@@ -1,6 +1,7 @@
 package net.lamgc.pixiv.downloader;
 
 import java.io.InputStream;
+import java.util.Set;
 
 public interface MetadataDatabase {
 
@@ -17,6 +18,13 @@ public interface MetadataDatabase {
                           InputStream imageInputStream,
                           String fileExtName,
                           String[] tags) throws Exception;
+
+    /**
+     * 获取数据库中的所有标签.
+     * @return 返回存储了数据库中已有的不重复的标签Set
+     * @throws Exception 当获取发生异常时抛出
+     */
+    Set<String> getTags() throws Exception;
 
     void close() throws Exception;
 

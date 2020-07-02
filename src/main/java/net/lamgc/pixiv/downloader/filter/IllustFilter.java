@@ -9,7 +9,7 @@ public interface IllustFilter {
      * @param title 作品标题
      * @param description 作品说明内容
      * @param userId 作者Id
-     * @param fileExtName 文件拓展名
+     * @param fileExtName 文件拓展名, 如未知则传入null
      * @param tags 标签
      * @return 如果返回true, 则继续处理, 否则跳过该作品.
      */
@@ -19,6 +19,6 @@ public interface IllustFilter {
                          String description,
                          int userId,
                          String fileExtName,
-                         String[] tags);
+                         final String[] tags);
 
 }
