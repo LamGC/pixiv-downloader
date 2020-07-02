@@ -84,6 +84,7 @@ public class MainClass {
             String searchContent = searchContentArray.get(searchContentIndex).getAsString();
 
             searchInfo.addProperty("lastSearchContent", searchContent);
+            searchInfo.addProperty("lastSearchContentIndex", searchContentIndex);
             PixivSearchLinkBuilder searchBuilder = new PixivSearchLinkBuilder(searchContent);
             do {
                 searchInfo.addProperty("lastSearchPagesIndex", currentPagesIndex);

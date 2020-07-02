@@ -22,7 +22,7 @@ public abstract class PixivDownloader {
         Objects.requireNonNull(this.database = database);
     }
 
-    IllustFilter getFilter() {
+    protected IllustFilter getFilter() {
         return this.filter;
     }
 
@@ -39,7 +39,7 @@ public abstract class PixivDownloader {
      * @param imageInputStream 图片数据
      * @throws Exception 处理时可能发生的异常
      */
-    void putIllust(int id,
+    protected void putIllust(int id,
                    int pageCount,
                    int pageIndex,
                    String title,
