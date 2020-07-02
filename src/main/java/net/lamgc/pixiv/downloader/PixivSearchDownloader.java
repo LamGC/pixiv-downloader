@@ -38,8 +38,6 @@ public class PixivSearchDownloader extends PixivDownloader {
 
     private final HttpClient httpClient;
 
-    private final PixivDownload pixivDownload;
-
     public PixivSearchDownloader(CookieStore cookieStore,
                                  HttpHost proxy,
                                  IllustFilter filter,
@@ -47,8 +45,7 @@ public class PixivSearchDownloader extends PixivDownloader {
                                  MetadataDatabase database) {
         super(filter, fileStore, database);
         this.cookieStore = cookieStore;
-        pixivDownload = new PixivDownload(this.cookieStore, proxy);
-        this.httpClient = pixivDownload.getHttpClient();
+        this.httpClient = new PixivDownload(this.cookieStore, proxy).getHttpClient();
     }
 
     public int executeSearch(PixivSearchLinkBuilder searchLinkBuilder) throws IOException {
@@ -103,9 +100,7 @@ public class PixivSearchDownloader extends PixivDownloader {
                 );
 
                 try {
-                    JsonObject illustPreLoadData = pixivDownload.getIllustPreLoadDataById(illustId).getAsJsonObject(
-                            "illust").getAsJsonObject(String.valueOf(illustId));
-                    int pagesCount = illustPreLoadData.get(PreLoadDataAttribute.PAGE.attrName).getAsInt();
+                    int pagesCount = illustObj.get(PreLoadDataAttribute.PAGE.attrName).getAsInt();
                     String title = illustObj.get("illustTitle").getAsString();
                     String desc = illustObj.get("description").getAsString();
                     int userId = illustObj.get("userId").getAsInt();
