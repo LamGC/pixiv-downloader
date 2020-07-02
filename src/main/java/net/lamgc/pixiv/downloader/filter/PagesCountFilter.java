@@ -10,7 +10,7 @@ public class PagesCountFilter implements IllustFilter {
      * @param maxPages 最大页面数, {@code pages < maxPages}
      * @param minPages 最小页面数, {@code pages >= minPages}
      */
-    public PagesCountFilter(int maxPages, int minPages) {
+    public PagesCountFilter(int minPages, int maxPages) {
         this.maxPages = maxPages;
         this.minPages = minPages;
     }

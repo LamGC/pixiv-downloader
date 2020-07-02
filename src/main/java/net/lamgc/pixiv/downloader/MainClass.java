@@ -22,6 +22,7 @@ public class MainClass {
 
     public static void main(String[] args) throws Exception {
         download();
+        getTagsToFile();
     }
 
     public static void getTagsToFile() throws Exception {
@@ -48,11 +49,11 @@ public class MainClass {
         ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cookieStoreFile));
         CookieStore cookieStore = (CookieStore) ois.readObject();
 
-        IllustFilter filter = new PagesCountFilter(1, 2);
+        IllustFilter filter = new PagesCountFilter(0, 2);
         ImageFileStore store = new DeepDanbooruImageStore(new File("./image/"));
         MetadataDatabase database = new DeepDanbooruDatabase(new File("./deepDanbooru.db"));
         PixivSearchDownloader downloader = new PixivSearchDownloader(cookieStore, new HttpHost("127.0.0.1", 1080),
-                (id, pageCount, title, description, userId, fileExtName, tags) -> pageCount == 1,
+                filter,
                 store, database);
 
         List<String> searchContentList = new ArrayList<>();
