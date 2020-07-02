@@ -64,6 +64,7 @@ public class PixivSearchDownloader extends PixivDownloader {
                 .fromJson(EntityUtils.toString(searchResponse.getEntity()), JsonObject.class).getAsJsonObject("body");
         log.info(resultBody.toString());
         log.debug("正在处理信息...");
+        int totalCount = 0;
         int count = 1;
         for (PixivSearchLinkBuilder.SearchArea searchArea : PixivSearchLinkBuilder.SearchArea.values()) {
             if (!resultBody.has(searchArea.jsonKey) ||
@@ -139,13 +140,14 @@ public class PixivSearchDownloader extends PixivDownloader {
                             putIllust(illustId, pagesCount, pageIndex, title, desc, userId, fileExtName, tagsArr, imageInputStream);
                         }
                         log.info("添加作品成功!");
+                        totalCount++;
                     }
                 } catch(Exception e) {
                     log.error("获取作品时发生异常.(IllustId: {})\n{}", illustId, Throwables.getStackTraceAsString(e));
                 }
             }
         }
-        return count;
+        return totalCount;
     }
 
 }

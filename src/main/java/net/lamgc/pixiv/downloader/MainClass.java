@@ -1,5 +1,9 @@
 package net.lamgc.pixiv.downloader;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import net.lamgc.cgj.pixiv.PixivSearchLinkBuilder;
 import net.lamgc.pixiv.downloader.deepdanbooru.DeepDanbooruDatabase;
 import net.lamgc.pixiv.downloader.deepdanbooru.DeepDanbooruImageStore;
@@ -11,14 +15,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 
 public class MainClass {
 
     private final static Logger log = LoggerFactory.getLogger(MainClass.class);
 
     private final static File cookieStoreFile = new File("./cookies.store");
+
+    private final static File searchList = new File("./search.list");
 
     public static void main(String[] args) throws Exception {
         download();
@@ -49,6 +56,17 @@ public class MainClass {
         ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cookieStoreFile));
         CookieStore cookieStore = (CookieStore) ois.readObject();
 
+
+        if(!searchList.exists()) {
+            System.err.println("搜索列表不存在!");
+            System.exit(1);
+            return;
+        }
+        final JsonObject searchInfo = new Gson()
+                .fromJson(new String(Files.readAllBytes(searchList.toPath())), JsonObject.class);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> saveSearchInfo(searchInfo)));
+
         IllustFilter filter = new PagesCountFilter(0, 2);
         ImageFileStore store = new DeepDanbooruImageStore(new File("./image/"));
         MetadataDatabase database = new DeepDanbooruDatabase(new File("./deepDanbooru.db"));
@@ -56,25 +74,42 @@ public class MainClass {
                 filter,
                 store, database);
 
-        List<String> searchContentList = new ArrayList<>();
-        searchContentList.add("VTuber");
-        searchContentList.add("黑丝");
-        searchContentList.add("白丝");
-        searchContentList.add("碧蓝航线");
-        searchContentList.add("公主连结");
-        searchContentList.add("崩坏3");
-        searchContentList.add("少女前线");
+        JsonArray searchContentArray = searchInfo.getAsJsonArray("searchContent");
+        int currentPagesIndex = searchInfo.get("lastSearchPagesIndex").getAsInt();
+        if(currentPagesIndex <= 0) {
+            currentPagesIndex = 1;
+        }
+        for (int searchContentIndex = searchInfo.get("lastSearchContentIndex").getAsInt();
+             searchContentIndex < searchContentArray.size(); searchContentIndex++) {
+            String searchContent = searchContentArray.get(searchContentIndex).getAsString();
 
-        for (String searchContent : searchContentList) {
+            searchInfo.addProperty("lastSearchContent", searchContent);
             PixivSearchLinkBuilder searchBuilder = new PixivSearchLinkBuilder(searchContent);
-            int currentPagesIndex = 5; // 5开始
             do {
-                searchBuilder.setPage(++currentPagesIndex);
+                searchInfo.addProperty("lastSearchPagesIndex", currentPagesIndex);
                 log.info("{}. Url: {}", currentPagesIndex, searchBuilder.buildURL());
+                saveSearchInfo(searchInfo);
+                searchBuilder.setPage(currentPagesIndex++);
             } while(downloader.executeSearch(searchBuilder) != 0);
+            currentPagesIndex = 1;
         }
 
         database.close();
+    }
+
+    private static void saveSearchInfo(JsonObject searchInfo) {
+        try {
+            Files.write(searchList.toPath(),
+                    new GsonBuilder()
+                            .serializeNulls()
+                            .setPrettyPrinting()
+                            .create()
+                            .toJson(searchInfo)
+                            .getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException e) {
+            log.error("保存配置文件失败！", e);
+        }
     }
 
 
